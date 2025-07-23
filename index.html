@@ -1,0 +1,451 @@
+"use client"
+
+import { useState, useRef } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { BookOpen, Heart, Activity } from "lucide-react"
+
+const diseases = [
+  {
+    name: "Diabetes",
+    color: "#E53E3E",
+    icon: "🩸",
+    description: "Condição em que o corpo não produz insulina suficiente ou não consegue usá-la adequadamente.",
+    symptoms: [
+      "Sede excessiva",
+      "Urinar frequentemente",
+      "Fome constante",
+      "Perda de peso",
+      "Visão embaçada",
+      "Feridas que demoram para cicatrizar",
+    ],
+    treatment: [
+      "Monitorar glicose regularmente",
+      "Medicamentos prescritos pelo médico",
+      "Dieta balanceada com baixo açúcar",
+      "Exercícios físicos regulares",
+      "Controle do peso",
+    ],
+    prevention: [
+      "Manter peso saudável",
+      "Exercitar-se regularmente",
+      "Alimentação equilibrada",
+      "Evitar açúcar em excesso",
+      "Consultas médicas regulares",
+    ],
+  },
+  {
+    name: "Hipertensão",
+    color: "#3182CE",
+    icon: "💓",
+    description: "Pressão arterial elevada que força o coração a trabalhar mais para bombear sangue.",
+    symptoms: ["Dor de cabeça", "Tontura", "Visão embaçada", "Dor no peito", "Falta de ar", "Sangramento nasal"],
+    treatment: [
+      "Medicamentos anti-hipertensivos",
+      "Reduzir consumo de sal",
+      "Exercícios cardiovasculares",
+      "Controle do estresse",
+      "Monitorar pressão regularmente",
+    ],
+    prevention: [
+      "Dieta com pouco sal",
+      "Exercícios regulares",
+      "Manter peso ideal",
+      "Não fumar",
+      "Limitar álcool",
+      "Gerenciar estresse",
+    ],
+  },
+  {
+    name: "Obesidade",
+    color: "#38A169",
+    icon: "⚖️",
+    description: "Acúmulo excessivo de gordura corporal que pode prejudicar a saúde.",
+    symptoms: [
+      "IMC acima de 30",
+      "Dificuldade para respirar",
+      "Fadiga",
+      "Dores nas articulações",
+      "Problemas de sono",
+      "Baixa autoestima",
+    ],
+    treatment: [
+      "Dieta hipocalórica orientada",
+      "Exercícios físicos regulares",
+      "Mudanças no estilo de vida",
+      "Acompanhamento nutricional",
+      "Em casos graves, cirurgia bariátrica",
+    ],
+    prevention: [
+      "Alimentação balanceada",
+      "Exercícios regulares",
+      "Controle de porções",
+      "Evitar alimentos processados",
+      "Beber bastante água",
+      "Dormir bem",
+    ],
+  },
+]
+
+export default function ChronicDiseasesRoulette() {
+  const [isSpinning, setIsSpinning] = useState(false)
+  const [rotation, setRotation] = useState(0)
+  const [result, setResult] = useState<string | null>(null)
+  const [sequenceCount, setSequenceCount] = useState(0) // Contador para controlar a sequência
+  const wheelRef = useRef<HTMLDivElement>(null)
+  const [showInfo, setShowInfo] = useState(false)
+  const [selectedDisease, setSelectedDisease] = useState<any>(null)
+
+  const segmentAngle = 360 / diseases.length
+
+  const spinWheel = () => {
+    if (isSpinning) return
+
+    setIsSpinning(true)
+    setResult(null)
+
+    // Determina qual doença deve ser selecionada baseada na sequência
+    const targetDiseaseIndex = sequenceCount % 3 // 0=Diabetes, 1=Hipertensão, 2=Obesidade
+
+    // Calcula o ângulo necessário para parar na doença desejada
+    const targetAngle = targetDiseaseIndex * segmentAngle + segmentAngle / 2
+
+    // Adiciona rotações completas para parecer aleatório
+    const minSpins = 5
+    const maxSpins = 7
+    const spins = Math.random() * (maxSpins - minSpins) + minSpins
+
+    // Calcula a rotação total para parar no segmento desejado
+    const totalRotation = spins * 360 + (360 - targetAngle)
+    const newRotation = rotation + totalRotation
+
+    setRotation(newRotation)
+
+    // Atualiza o contador da sequência
+    setSequenceCount((prev) => prev + 1)
+
+    // Mostra o resultado após a animação
+    setTimeout(() => {
+      const selectedDisease = diseases[targetDiseaseIndex]
+      setResult(selectedDisease.name)
+      setSelectedDisease(selectedDisease)
+      setShowInfo(true)
+      setIsSpinning(false)
+
+      // Adiciona efeito visual na seta
+      if (wheelRef.current) {
+        wheelRef.current.style.filter = "drop-shadow(0 0 20px rgba(239, 68, 68, 0.8))"
+        setTimeout(() => {
+          if (wheelRef.current) {
+            wheelRef.current.style.filter = "drop-shadow(0 0 0 transparent)"
+          }
+        }, 2000)
+      }
+    }, 3000)
+  }
+
+  const createSegmentPath = (index: number) => {
+    const startAngle = (index * segmentAngle - 90) * (Math.PI / 180)
+    const endAngle = ((index + 1) * segmentAngle - 90) * (Math.PI / 180)
+    const radius = 150
+    const centerX = 160
+    const centerY = 160
+
+    const x1 = centerX + radius * Math.cos(startAngle)
+    const y1 = centerY + radius * Math.sin(startAngle)
+    const x2 = centerX + radius * Math.cos(endAngle)
+    const y2 = centerY + radius * Math.sin(endAngle)
+
+    const largeArcFlag = segmentAngle > 180 ? 1 : 0
+
+    return `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`
+  }
+
+  const getTextPosition = (index: number) => {
+    const angle = (index * segmentAngle + segmentAngle / 2 - 90) * (Math.PI / 180)
+    const textRadius = 100
+    const centerX = 160
+    const centerY = 160
+
+    return {
+      x: centerX + textRadius * Math.cos(angle),
+      y: centerY + textRadius * Math.sin(angle),
+    }
+  }
+
+  const getTextRotation = (index: number) => {
+    const angle = index * segmentAngle + segmentAngle / 2
+    return angle > 90 && angle < 270 ? angle + 180 : angle
+  }
+
+  const getResultMessage = (disease: string) => {
+    const messages = {
+      Diabetes: "Vamos aprender sobre o controle da glicose no sangue!",
+      Hipertensão: "Vamos descobrir como cuidar da pressão arterial!",
+      Obesidade: "Vamos explorar hábitos saudáveis para o peso ideal!",
+    }
+    return messages[disease as keyof typeof messages] || ""
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-red-500 p-4">
+      {/* Header educativo */}
+      <div className="text-center py-8">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <Heart className="w-8 h-8 text-white" />
+          <h1 className="text-4xl font-bold text-white">Doenças Crônicas</h1>
+          <Activity className="w-8 h-8 text-white" />
+        </div>
+        <p className="text-xl text-white/90 max-w-2xl mx-auto">
+          Roleta Educativa para Aprender sobre Prevenção e Cuidados
+        </p>
+      </div>
+
+      <div className="flex flex-col items-center justify-center">
+        <Card className="w-full max-w-lg shadow-2xl border-4 border-white/20 bg-white/95 backdrop-blur-sm">
+          <CardContent className="p-8">
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <BookOpen className="w-6 h-6 text-purple-600" />
+                <h2 className="text-2xl font-bold text-gray-800">Roleta do Conhecimento</h2>
+              </div>
+              <p className="text-gray-600 text-lg">Gire a roleta e aprenda sobre cada condição de saúde!</p>
+            </div>
+
+            <div className="relative flex justify-center mb-8">
+              {/* Wheel */}
+              <div
+                ref={wheelRef}
+                className="relative"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: isSpinning ? "transform 3s cubic-bezier(0.23, 1, 0.32, 1)" : "none",
+                }}
+              >
+                <svg width="320" height="320" className="drop-shadow-2xl">
+                  {diseases.map((disease, index) => (
+                    <g key={index}>
+                      <path
+                        d={createSegmentPath(index)}
+                        fill={disease.color}
+                        stroke="#fff"
+                        strokeWidth="3"
+                        className="hover:brightness-110 transition-all"
+                      />
+                      <text
+                        x={getTextPosition(index).x}
+                        y={getTextPosition(index).y - 10}
+                        fill="white"
+                        fontSize="14"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${getTextRotation(index)}, ${getTextPosition(index).x}, ${getTextPosition(index).y})`}
+                        style={{ textShadow: "2px 2px 4px rgba(0,0,0,0.7)" }}
+                      >
+                        {disease.name}
+                      </text>
+                      <text
+                        x={getTextPosition(index).x}
+                        y={getTextPosition(index).y + 15}
+                        fill="white"
+                        fontSize="20"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        transform={`rotate(${getTextRotation(index)}, ${getTextPosition(index).x}, ${getTextPosition(index).y})`}
+                      >
+                        {disease.icon}
+                      </text>
+                    </g>
+                  ))}
+
+                  {/* Indicador do segmento selecionado */}
+                  {result && !isSpinning && (
+                    <g>
+                      <circle
+                        cx="160"
+                        cy="160"
+                        r="155"
+                        fill="none"
+                        stroke="red"
+                        strokeWidth="6"
+                        strokeDasharray="10,5"
+                        className="animate-spin"
+                        style={{
+                          animationDuration: "3s",
+                          transformOrigin: "160px 160px",
+                        }}
+                      />
+                      <text
+                        x="160"
+                        y="50"
+                        textAnchor="middle"
+                        fill="red"
+                        fontSize="16"
+                        fontWeight="bold"
+                        className="animate-bounce"
+                      >
+                        ↓ AQUI! ↓
+                      </text>
+                    </g>
+                  )}
+
+                  {/* Center circle */}
+                  <circle cx="160" cy="160" r="30" fill="white" stroke="#333" strokeWidth="4" />
+                  <text x="160" y="160" textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="bold">
+                    🎯
+                  </text>
+                </svg>
+              </div>
+
+              {/* Pointer - Seta Indicadora */}
+              <div className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-4">
+                {/* Seta principal */}
+                <div className="relative">
+                  <div className="w-0 h-0 border-l-[30px] border-l-red-600 border-t-[20px] border-t-transparent border-b-[20px] border-b-transparent drop-shadow-xl"></div>
+                  <div className="w-0 h-0 border-l-[25px] border-l-red-500 border-t-[17px] border-t-transparent border-b-[17px] border-b-transparent absolute top-1/2 left-0 transform -translate-y-1/2"></div>
+                  <div className="w-0 h-0 border-l-[20px] border-l-red-400 border-t-[14px] border-t-transparent border-b-[14px] border-b-transparent absolute top-1/2 left-0 transform -translate-y-1/2"></div>
+                </div>
+
+                {/* Base da seta */}
+                <div className="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1">
+                  <div className="w-3 h-8 bg-red-600 rounded-r-lg shadow-lg"></div>
+                  <div className="w-2 h-6 bg-red-500 rounded-r-md absolute top-1/2 left-1/2 transform -translate-y-1/2 -translate-x-1/2"></div>
+                </div>
+
+                {/* Indicador de resultado quando parar */}
+                {result && !isSpinning && (
+                  <div className="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-12">
+                    <div className="bg-white border-4 border-red-500 rounded-full p-2 shadow-2xl animate-pulse">
+                      <div className="text-2xl font-bold text-red-600">👆</div>
+                    </div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                      RESULTADO!
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="text-center space-y-6">
+              <Button
+                onClick={spinWheel}
+                disabled={isSpinning}
+                className="w-full py-4 text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg transform hover:scale-105 transition-all duration-200"
+                size="lg"
+              >
+                {isSpinning ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Girando...
+                  </span>
+                ) : (
+                  "🎲 Girar Roleta Educativa"
+                )}
+              </Button>
+
+              {showInfo && selectedDisease && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{selectedDisease.icon}</span>
+                          <h2 className="text-2xl font-bold text-gray-800">{selectedDisease.name}</h2>
+                        </div>
+                        <button
+                          onClick={() => setShowInfo(false)}
+                          className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">📋 O que é?</h3>
+                          <p className="text-gray-600 bg-gray-50 p-3 rounded-lg">{selectedDisease.description}</p>
+                        </div>
+
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">⚠️ Principais Sintomas</h3>
+                          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {selectedDisease.symptoms.map((symptom: string, index: number) => (
+                              <li key={index} className="flex items-center gap-2 text-gray-600 bg-red-50 p-2 rounded">
+                                <span className="text-red-500">•</span>
+                                {symptom}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">💊 Como Tratar</h3>
+                          <ul className="space-y-2">
+                            {selectedDisease.treatment.map((treatment: string, index: number) => (
+                              <li key={index} className="flex items-center gap-2 text-gray-600 bg-blue-50 p-2 rounded">
+                                <span className="text-blue-500">✓</span>
+                                {treatment}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">🛡️ Como Prevenir</h3>
+                          <ul className="space-y-2">
+                            {selectedDisease.prevention.map((prevention: string, index: number) => (
+                              <li key={index} className="flex items-center gap-2 text-gray-600 bg-green-50 p-2 rounded">
+                                <span className="text-green-500">🌟</span>
+                                {prevention}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          <strong>⚠️ Importante:</strong> Estas informações são apenas educativas. Sempre consulte um
+                          médico para diagnóstico e tratamento adequados.
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={() => setShowInfo(false)}
+                          className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
+                        >
+                          Entendi! 📚
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {result && (
+                <div className="p-6 bg-gradient-to-r from-green-100 to-blue-100 border-2 border-green-300 rounded-xl shadow-lg">
+                  <div className="text-2xl font-bold text-green-800 mb-2">
+                    🎉 Vamos estudar: <span className="text-3xl">{result}</span>
+                  </div>
+                  <p className="text-lg text-green-700 font-medium">{getResultMessage(result)}</p>
+                </div>
+              )}
+
+              <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                💡 <strong>Dica:</strong> Esta é uma ferramenta educativa para aprender sobre prevenção e cuidados com a
+                saúde.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer educativo */}
+        <div className="mt-8 text-center text-white/80 max-w-2xl">
+          <p className="text-lg">🏥 Sempre consulte um profissional de saúde para orientações médicas adequadas</p>
+        </div>
+      </div>
+    </div>
+  )
+}
